@@ -1,25 +1,3 @@
-train_resnet.py
-Kto ma dostęp
-Nieudostępniony
-Właściwości systemowe
-Typ elementu
-Tekst
-Rozmiar
-4 KB
-Zajęte miejsce
-4 KB
-Lokalizacja
-resnet
-Właściciel
-ja
-Zmodyfikowano
-3 gru 2021 przeze mnie
-Otwarty
-20:11 przeze mnie
-Utworzono
-1 gru 2021 w aplikacji Google Drive for desktop
-Dodaj opis
-Przeglądający mogą pobierać
 import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
