@@ -1,11 +1,35 @@
+train_resnet.py
+Kto ma dostęp
+Nieudostępniony
+Właściwości systemowe
+Typ elementu
+Tekst
+Rozmiar
+4 KB
+Zajęte miejsce
+4 KB
+Lokalizacja
+resnet
+Właściciel
+ja
+Zmodyfikowano
+3 gru 2021 przeze mnie
+Otwarty
+20:11 przeze mnie
+Utworzono
+1 gru 2021 w aplikacji Google Drive for desktop
+Dodaj opis
+Przeglądający mogą pobierać
 import os
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 import numpy as np
 import keras
-import tensorflow
-from keras.optimizers import SGD
+from keras import utils as np_utils
+import tensorflow as tf
+from tensorflow.keras.optimizers import SGD
+
 
 import sys
 sys.path.append("..")
@@ -15,25 +39,29 @@ from funcs import *
 from resnet import model_resnet
 from DCASE_training_functions import *
 
-from tensorflow import ConfigProto
-from tensorflow import InteractiveSession
+#from tensorflow import ConfigProto
+#from tensorflow import InteractiveSession
 
-config = ConfigProto()
+#tf.test.is_gpu_available()
+print(tf.__version__)
+config = tf.compat.v1.ConfigProto()
 config.gpu_options.allow_growth = True
-session = InteractiveSession(config=config)
+session = tf.compat.v1.InteractiveSession(config=config)
 
 
 # Please put your csv file for train and validation here.
 # If you dont generate the extra augmented data, please use 
 # ../evaluation_setup/fold1_train.csv and delete the aug_csv part
-train_csv = 'evaluation_setup/fold1_train_all.csv'
-val_csv = 'evaluation_setup/fold1_evaluate.csv'
+train_csv = '/content/drive/MyDrive/dcase/evaluation_setup/fold1_train.csv'
+val_csv = '/content/drive/MyDrive/dcase/evaluation_setup/fold1_evaluate.csv'
 #aug_csv = 'evaluation_setup/fold1_train_a_2003.csv'
 
-feat_path = 'features/logmel128_scaled_full/'
+feat_path = '/content/drive/MyDrive/dcase/features/logmel64_scaled'
 #aug_path = 'features/logmel128_reverb_scaled/'
 
-experiments = 'exp_2020_resnet_scaled_specaugment_timefreqmask_speccorr_together_nowd_alldata/'
+
+
+experiments = '/content/drive/MyDrive/dcase/exp_2020_resnet_scaled_specaugment_timefreqmask_speccorr_together_nowd_alldata/'
 
 if not os.path.exists(experiments):
     os.makedirs(experiments)
@@ -43,10 +71,10 @@ if not os.path.exists(experiments):
 train_aug_csv = train_csv
 
 num_audio_channels = 1
-num_freq_bin = 128
+num_freq_bin = 64
 num_classes = 10
 max_lr = 0.1
-batch_size = 32
+batch_size = 64
 num_epochs = 126
 mixup_alpha = 0.4
 crop_length = 400
@@ -57,7 +85,7 @@ data_val, y_val = load_data_2020(feat_path, val_csv, num_freq_bin, 'logmel')
 data_deltas_val = deltas(data_val)
 data_deltas_deltas_val = deltas(data_deltas_val)
 data_val = np.concatenate((data_val[:,:,4:-4,:],data_deltas_val[:,:,2:-2,:],data_deltas_deltas_val),axis=-1)
-y_val = keras.utils.to_categorical(y_val, num_classes)
+y_val = keras.utils.np_utils.to_categorical(y_val, num_classes)
 
 model = model_resnet(num_classes,
                      input_shape=[num_freq_bin,None,3*num_audio_channels], 
@@ -74,8 +102,8 @@ lr_scheduler = LR_WarmRestart(nbatch=np.ceil(sample_num/batch_size), Tmult=2,
                               initial_lr=max_lr, min_lr=max_lr*1e-4,
                               epochs_restart = [3.0, 7.0, 15.0, 31.0, 63.0,127.0,255.0,511.0]) 
 
-save_path = experiments + "/model-{epoch:02d}-{val_acc:.4f}.hdf5"
-checkpoint = keras.callbacks.ModelCheckpoint(save_path, monitor='val_acc', verbose=1, save_best_only=False, mode='max')
+save_path = experiments + "model-{epoch:02d}-{val_accuracy:.4f}.hdf5"
+checkpoint = keras.callbacks.ModelCheckpoint(save_path, monitor='val_accuracy', verbose=1, save_best_only=False, mode='max')
 callbacks = [lr_scheduler, checkpoint]
 
 # Due to the memory limitation, in the training stage we split the training data
@@ -84,7 +112,7 @@ train_data_generator = Generator_withdelta_splitted(feat_path, train_aug_csv, nu
                               alpha=mixup_alpha,
                               crop_length=crop_length, splitted_num=4)()
 
-history = model.fit_generator(train_data_generator,
+history = model.fit(train_data_generator,
                               validation_data=(data_val, y_val),
                               epochs=num_epochs, 
                               verbose=1, 
@@ -93,4 +121,12 @@ history = model.fit_generator(train_data_generator,
                               callbacks=callbacks,
                               steps_per_epoch=np.ceil(sample_num/batch_size)
                               ) 
-
+#history = model.fit_generator(train_data_generator,
+      #                        validation_data=(data_val, y_val),
+       #                       epochs=num_epochs,
+       #                       verbose=1,
+       #                       workers=4,
+          #                    max_queue_size = 100,
+         #                     callbacks=callbacks,
+          #                    steps_per_epoch=np.ceil(sample_num/batch_size)
+          #                    )
